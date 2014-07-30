@@ -1,0 +1,47 @@
+#!/bin/gawk -f
+#
+BEGIN {
+	hyper=0;
+}
+
+/^[ \t]*\(Interaction/ {
+	interaction=1;
+	object=0;
+	print $0
+	next
+}
+
+/^[ \t]*\(Class/ {
+	interaction=0;
+	object=1;
+	print $0
+	next
+}
+
+/^[ \t]*\(RoutingSpace/ {
+	hyper=1;
+	print $0
+	next
+}
+
+/^[ \t]*\(DeliveryCategory/ {
+	if (hyper == 0)
+	{
+		if (interaction)
+		{
+			print "     (RoutingSpace \"HyperSpace\") ;; added CCA 07/14/06"
+		}
+		else
+		{
+			print "                (RoutingSpace \"HyperSpace\") ;; added CCA 07/14/06"
+		}
+	}
+	print $0
+	hyper = 0;
+	next
+}
+
+{
+	print $0
+}
+

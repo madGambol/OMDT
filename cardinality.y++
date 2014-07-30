@@ -1,0 +1,300 @@
+
+/*-------------------------------------------------------------------*/
+/*                                                                   */
+/* OMD Cardinality Parser                                            */
+/*                                                                   */
+/*-------------------------------------------------------------------*/
+
+%{
+
+#define YYPRINT(a,b,c)
+
+#define YYDEBUG 1
+
+#include <stdio.h>
+  //#include <FlexLexer.h>
+
+#include <stack>
+#include <list>
+#include <string>
+
+using namespace std;
+
+#include <stdlib.h>
+
+#include "yystype.h" // contains YYSTYPE definition
+                     // this is required because bison
+                     // isn't copying this part of the user
+                     // declaration into the header file
+
+#include "OMDCardinalityParser.h"
+
+void ccerror(const char * pMessage);
+int getCardLine();
+
+CCardinalityExpr * pResult = NULL;
+
+static CType1  * pType1  = NULL;
+static CType2  * pType2  = NULL;
+static CType3  * pType3  = NULL;
+static CType4  * pType4  = NULL;
+static CType5a * pType5a = NULL;
+static CType5b * pType5b = NULL;
+static CType6  * pType6  = NULL;
+
+int cclex();
+
+%}
+
+%token          eeNumber
+%token          eeName
+%token          eeOparen
+%token          eeCparen
+%token          eeComma
+%token          eeColon
+%token          eeDash
+%token          eeElipses
+%token          eePlus
+%token          eeModulo
+
+%token          eeEqual
+%token          eeGreaterThan
+%token          eeLessThan
+%token          eeNotEqual
+%token          eeGreaterOrEqual
+%token          eeLessOrEqual
+
+
+%%
+
+cardinalityExpression :
+			eeNumber
+{
+  pType1  = new CType1( $1 );
+  pResult = (CCardinalityExpr*)pType1;
+}
+			|
+			eeNumber eePlus
+{
+  pType2  = new CType2( $1 );
+  pResult = (CCardinalityExpr*)pType2;
+}
+			|
+			eeNumber
+                        eeDash
+                        eeNumber
+{
+  pType3  = new CType3( $1, $3 );
+  pResult = (CCardinalityExpr*)pType3;
+}
+			|
+			eeNumber
+                        eeDash
+                        eeNumber
+                        eeComma
+                        eeOparen
+                        eeName
+                        eeEqual
+                        eeName
+                        eeCparen
+{
+    // type 5a
+    pType5a = new CType5a( $5 );
+    
+    pType5a->setComparisonType( e_Equal );
+
+    pResult = (CCardinalityExpr*)pType5a;
+}
+			|
+			eeNumber
+                        eeDash
+                        eeNumber
+                        eeComma
+                        eeName
+                        eeEqual
+                        eeName
+{
+    // type 5a
+    pType5a = new CType5a( $5 );
+    
+    pType5a->setComparisonType( e_Equal );
+
+    pType5a->setEnumerateName( $7 );
+
+    pResult = (CCardinalityExpr*)pType5a;
+}
+			|
+			eeNumber
+                        eePlus
+                        eeComma
+                        eeName
+{
+  pType4  = new CType4( $4 );
+  pResult = (CCardinalityExpr*)pType4;
+}
+			|
+			eeName
+{
+  pType4  = new CType4( $1 );
+  pResult = (CCardinalityExpr*)pType4;
+}
+			|
+			eeName 
+{
+  //printf("CType5a: name = [%s]\n", $1.c_str() );
+
+  pType5a = new CType5a( $1 );
+  pResult = (CCardinalityExpr*)pType5a;
+}
+			comparison eeName
+{
+  //printf("CType5a: name = [%s]\n", $1.c_str() );
+
+  //pType5a = new CType5a( $1 );
+  //pResult = (CCardinalityExpr*)pType5a;
+
+  pType5a->setEnumerateName( $4 );
+}
+			|
+			eeName eeColon 
+{
+  //printf("CType5b: name = [%s]\n", $1.c_str() );
+
+  pType5b = new CType5b( $1 );
+  pResult = (CCardinalityExpr*)pType5b;
+}
+			enumerateAlternative 
+                        enumerateAltList
+			|
+			eeModulo eeNumber
+{
+  pType6  = new CType6( $2 );
+  pResult = (CCardinalityExpr*)pType6;
+}
+			|
+			error
+{
+  delete pResult;
+
+  pResult = NULL;
+  pType1  = NULL;
+  pType2  = NULL;
+  pType3  = NULL;
+  pType4  = NULL;
+  pType5a = NULL;
+  pType5b = NULL;
+  pType6  = NULL;
+}
+			;
+
+enumerateAltList      : enumerateAltList 
+                        eeComma 
+                        enumerateAlternative 
+                        |
+                        ;
+
+enumerateAlternative  : eeName 
+{
+  pType5b->addTerm( new SingleEnumerate( $1 ) );
+}
+                        |
+                        eeName
+                        eeElipses
+                        eeName
+{
+  pType5b->addTerm( new EnumerateRange( $1, $3 ) );
+}
+                        |
+                        comparison
+                        eeName
+{
+  pType5b->addTerm( new EnumerateComparison( $1, $2 ) );
+}
+			;
+
+comparison            :
+			eeEqual
+{
+  pType5a->setComparisonType( ComparisonType(eeEqual) );
+}
+			|
+			eeGreaterThan
+{
+  pType5a->setComparisonType( ComparisonType(eeGreaterThan) );
+}
+			|
+			eeLessThan
+{
+  pType5a->setComparisonType( ComparisonType(eeLessThan) );
+}
+			|
+			eeNotEqual
+{
+  pType5a->setComparisonType( ComparisonType(eeNotEqual) );
+}
+			|
+			eeGreaterOrEqual
+{
+  pType5a->setComparisonType( ComparisonType(eeGreaterOrEqual) );
+}
+			|
+			eeLessOrEqual
+{
+  pType5a->setComparisonType( ComparisonType(eeLessOrEqual) );
+}
+			;
+%%
+
+#undef yyFlexLexer
+#define yyFlexLexer ccFlexLexer
+#include <FlexLexer.h>
+
+FlexLexer * getCardInstance(void);
+
+const char * getCardSym(void);
+
+int cclex()
+{
+  int token = getCardInstance()->cclex();
+
+#ifdef CCDEBUG
+#if CCDEBUG==1
+  ccdebug = 0;
+#endif
+#endif
+
+  //printf("token = %d, symbol = %s\n", token, getSym() );
+
+  return token;
+}
+
+void ccerror(const char * pMessage)
+{
+  //printf("cardinality parser: line %d: %s with token %s\n", getCardLine(), pMessage, getCardSym());
+}
+
+const char * ccTokenLookup(int token)
+{
+  const char * pRetVal = "not found";
+
+  size_t index;
+  for (index = 1; index < sizeof(yytoknum)/sizeof(unsigned short); index++)
+  {
+    int found = yytoknum[index];
+
+    if (found == token)
+    {
+      pRetVal = yytname[ index ];
+
+      pRetVal++;
+
+      break;
+    }
+  }
+
+  return pRetVal;
+}
+
+// Local Variables:
+// mode:C++
+// End:

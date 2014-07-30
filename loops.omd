@@ -1,0 +1,333 @@
+(OMDT                                   ;;; 0
+             v1.3.5.17 ) ; a comment
+(ObjectModel                            ;;; 1
+             (Name "OMDT Tool Test File" )                  ;; 0
+             (VersionNumber     "1.0")                      ;; 1
+             (Type              FOM)                        ;; 2
+             (Purpose           "Program verification")     ;; 3
+             (ApplicationDomain "HLA Tools")                ;; 4
+             (SponsorOrgName    "ChrisArena")               ;; 5
+             (POCHonorificName  "Mr")                       ;; 6
+             (POCFirstName      "Christopher")              ;; 7
+             (POCLastName       "Arena")                    ;; 8
+             (POCOrgName        "")                         ;; 9
+             (POCPhone          "arena@bmh.com")            ;; 10
+             (POCEmail          "arena@bmh.com")            ;; 11
+             (ModificationDate  01/15/2006)                 ;; 12
+             (MOMVersion        "na")                       ;; 13
+             (FEDname           "FederationName")           ;; 14
+ 
+  (RoutingSpace                                             ;; 15
+      (Name "HyperSpace") 
+      (Dimension (Name "subspace")
+                (DimensionType "long")
+                (DimensionMinimum "MIN_EXTENT")
+                (DimensionMaximum "MAX_EXTENT")
+                (IntervalType Closed)
+                (RangeSetUnits "none")
+                (NormalizationFunction "none")
+      )
+      (Dimension (Name "one")
+                (DimensionType "long")
+                (DimensionMinimum "MIN_EXTENT")
+                (DimensionMaximum "MAX_EXTENT")
+                (IntervalType Closed)
+                (RangeSetUnits "none")
+                (NormalizationFunction "none")
+      )
+      (Dimension (Name "two")
+                (DimensionType "long")
+                (DimensionMinimum "MIN_EXTENT")
+                (DimensionMaximum "MAX_EXTENT")
+                (IntervalType Closed)
+                (RangeSetUnits "none")
+                (NormalizationFunction "none")
+      )
+  )
+  (ComplexDataType                                          ;; 16
+       (Name "AccelerationVectorStruct")
+       (ComplexComponent (FieldName "XAccelerationRate")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "XAcceleration")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "XAcceleration")
+                         (DataType "double")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+  )
+  (EnumeratedDataType                                       ;; 17
+        (Name "AmplitudeAngleModulationTypeEnum16")
+        (AutoSequence No)
+        (StartValue 1)
+        (Enumeration (Enumerator "Other")
+                     (Representation 0))
+        (Enumeration (Enumerator "AmplitudeAndAngle")
+                     (Representation 1))
+  )
+  (EnumeratedDataType (Name "IceAirframeEnum8")
+        (Description "Airframe icing code. this is a really long line//.. well ok not so long, but its a bad rdr string.")
+        (AutoSequence Yes)
+        (StartValue 0)
+        (Enumeration (Enumerator "TBD")
+                     (Representation 0))
+  )
+;;
+;; self looping (period 0)
+;;
+  (ComplexDataType                                          ;; 16
+       (Name "VectorStruct")
+       (ComplexComponent (FieldName "XAccelerationRate")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "XAcceleration")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "XAcceleration")
+                         (DataType "VectorStruct")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+  )
+;;
+;; period 2 loop 
+;;
+  (ComplexDataType                                          ;; 16
+       (Name "CDT1-2")
+       (ComplexComponent (FieldName "XAcceleration")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "ZAcceleration")
+                         (DataType "CDT2-2")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "YAcceleration")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+  )
+  (ComplexDataType                                          ;; 16
+       (Name "CDT2-2")
+       (ComplexComponent (FieldName "XAccelerationRate")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "XAcceleration")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "ZAcceleration")
+                         (DataType "CDT1-2")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+  )
+;;
+;; period 3 loop
+;;
+  (ComplexDataType                                          ;; 16
+       (Name "CDT1-3")
+       (ComplexComponent (FieldName "XAcceleration")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "ZAcceleration")
+                         (DataType "CDT2-3")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "YAcceleration")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+  )
+  (ComplexDataType                                          ;; 16
+       (Name "CDT2-3")
+       (ComplexComponent (FieldName "XAccelerationRate")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "XAcceleration")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "ZAcceleration")
+                         (DataType "CDT3-3")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+  )
+  (ComplexDataType                                          ;; 16
+       (Name "CDT3-3")
+       (ComplexComponent (FieldName "XAccelerationRate")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "ZAcceleration")
+                         (DataType "CDT1-3")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+       (ComplexComponent (FieldName "XAcceleration")
+                         (DataType "float")
+                         (Cardinality "3")
+                         (Units "m/s/s")
+                         (Accuracy "perfect")
+                         (AccuracyCondition "always")
+       )
+  )
+  (Class                                                    ;; 18
+     (ID 1)                ; 0
+     (Name "Manager")      ; 1
+     (MOMClass TRUE)       ; 2
+     (PSCapabilities N)    ; 4
+     (Description "Class of all management objects") ; 5
+     (SuperClass 2)
+  )
+  (Class                                                    ;; 19
+     (ID 2 [1,2, 3])
+     (Name "AgentSensor" [1,2, 3])
+     (PSCapabilities PS)
+     (SuperClass 1)
+     (Description "Base class for all sensors") 
+  )
+  (Class                                                    ;; 18
+     (ID 3)                ; 0
+     (Name "Manager")      ; 1
+     (MOMClass TRUE)       ; 2
+     (PSCapabilities N)    ; 4
+     (Description "Class of all management objects") ; 5
+     (SuperClass 5)
+  )
+  (Class                                                    ;; 19
+     (ID 4 [1,2, 3])
+     (Name "AgentSensor" [1,2, 3])
+     (PSCapabilities PS)
+     (SuperClass 3)
+     (Description "Base class for all sensors") 
+  )
+  (Class                                                    ;; 18
+     (ID 5)                ; 0
+     (Name "Manager")      ; 1
+     (MOMClass TRUE)       ; 2
+     (PSCapabilities N)    ; 4
+     (Description "Class of all management objects") ; 5
+     (SuperClass 4)
+  )
+  (Class                                                    ;; 18
+     (ID 6)                ; 0
+     (Name "Manager")      ; 1
+     (MOMClass TRUE)       ; 2
+     (PSCapabilities N)    ; 4
+     (Description "Class of all management objects") ; 5
+     (SuperClass 4)
+  )
+;;
+;;
+;;
+  (Interaction (ID 1)
+     (Name "AgentRelease")
+     (ISRType IR)
+     (Description "Introduce a new source to the simulation model")
+     (RoutingSpace "HyperSpace")
+     (DeliveryCategory "best_effort")
+     (MessageOrdering "receive")
+     (SuperInteraction 3)
+  )
+  (Interaction (ID 2)
+     (Name "AtlosRequest")
+     (ISRType IR)
+     (Description "Request to the atlos server for a transmission loss array")
+     (RoutingSpace "HyperSpace")
+     (DeliveryCategory "best_effort")
+     (MessageOrdering "receive")
+     (SuperInteraction 1)
+  )
+  (Interaction (ID 3)
+     (Name "AtlosResponse")
+     (ISRType IR)
+     (Description "Response from the atlos server with the requested transmission loss")
+     (RoutingSpace "HyperSpace")
+     (DeliveryCategory "best_effort")
+     (MessageOrdering "receive")
+     (SuperInteraction 2)
+  )
+  (Interaction (ID 4)
+     (Name "Candidate_Change")
+     (ISRType IR)
+     (Description "Base interaction for validation requests to the scribe.  Looks much like a validated request.")
+     (RoutingSpace "HyperSpace")
+     (DeliveryCategory "best_effort")
+     (MessageOrdering "receive")
+     (SuperInteraction 3)
+  )
+  (Interaction (ID 5)
+     (Name "CarrierFlightOps")
+     (ISRType IR)
+     (RoutingSpace "HyperSpace")
+     (DeliveryCategory "best_effort")
+     (MessageOrdering "receive")
+     (SuperInteraction 4)
+  )
+)

@@ -1,0 +1,7 @@
+#!/bin/sed -f
+s/std:://g
+s/basic_string<char, char_traits<char>, allocator<char> >/string/g
+s/set<string, less<string > >/set<string>/g
+s/, allocator<[a-zA-Z0-9 ]*>//g
+s/, less<string >//g
+s/, allocator<pair<const string, set<string > > >//g

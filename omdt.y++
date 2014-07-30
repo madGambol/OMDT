@@ -1,0 +1,1925 @@
+
+/*-------------------------------------------------------------------*/
+/*                                                                   */
+/* OMD/OMT Parser                                                    */
+/*                                                                   */
+/*-------------------------------------------------------------------*/
+
+%{
+#include <string.h>
+    
+#include <stdio.h>
+#include <FlexLexer.h>
+
+#include <ostream>
+#include <sstream>
+#include <iomanip>
+#include <stack>
+#include <string>
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+
+class COMDocument;
+class CAttributeList;
+class CBitfieldComponent;
+class CObjectModel;
+class CRoutingSpace;
+class CDimension;
+class CComplexDataType;
+class CComplexComponent;
+class CEnumeratedDataType;
+class CEnumeration;
+class CClass;
+class CAttribute;
+class CInteraction;
+class CParameter;
+class CNote;
+class CNoteList;
+class CNoteText;
+class CAttributeValuePair;
+class OMDNode;
+
+//#include "yystype.h" // contains YYSTYPE definition
+                       // this is required because bison
+                       // isn't copying this part of the user
+                       // declaration into the header file
+using namespace std;
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "OMDBase.h"
+#include "OMDNode.h"
+
+//#include "OMDStack.h"
+
+#include "Attribute.h"
+#include "CBitfieldComponent.h"
+#include "CBitfieldDataType.h"
+#include "CComplexComponent.h"
+#include "CComplexDataType.h"
+#include "CDimension.h"
+#include "CObjectModel.h"
+#include "COMDocument.h"
+#include "CRoutingSpace.h"
+#include "CClass.h"
+#include "CEnumeratedDataType.h"
+#include "CEnumeration.h"
+#include "singleton.h"
+
+//#include "DataType.h"
+//#include "EnumeratedDataType.h"
+//#include "ComplexDataType.h"
+
+
+/////# define YYDEBUG 1 
+   //#define YYERROR_VERBOSE 0
+#define YYPRINT
+
+#define LOC(x)  (Loc *)&(x)
+
+int yylex();
+
+//FlexLexer * getInstance(void);
+
+ void yyerror(const char * pMessage);
+ int getLine();
+
+ COMDocument         * pOMDoc              = NULL;
+ CAttributeList      * pDIF                = NULL;
+ CAttributeList      * pFinal              = NULL;
+ CAttributeList      * pDimensionList      = NULL;
+ CAttributeList      * pRoutingProps       = NULL;
+ CAttributeList      * pObjectDefList      = NULL;
+ CObjectModel        * pObjectModel        = NULL;
+ CRoutingSpace       * pRoutingSpace       = NULL;
+ CDimension          * pDimension          = NULL;
+ CBitfieldDataType   * pBitfieldDataType   = NULL;
+ CComplexDataType    * pComplexDataType    = NULL;
+ CAttributeList      * pBitfieldComponent  = NULL;
+ CAttributeList      * pComplexComponent   = NULL;
+ CEnumeratedDataType * pEnumeratedDataType = NULL;
+ CEnumeration        * pEnumeration        = NULL;
+ CClass              * pClass              = NULL;
+ CAttribute          * pAttribute          = NULL;
+ CInteraction        * pInt                = NULL;
+ CParameter          * pParameter          = NULL;
+ CNote               * pNote               = NULL;
+ CNoteList           * pNL                 = NULL;
+
+ stack<CAttributeList *> attrListStack;
+
+ static size_t errorCount = 0;
+
+#define TOK(x) OMDBase::NodeTypeEnum(x)
+
+ //#define DEBUG(x) x
+#define DEBUG(x)
+
+/*
+%skeleton "lalr1.cc"
+
+%locations
+%debug
+%error-verbose
+
+*/
+%}
+
+%locations
+%debug
+
+%union {
+  COMDocument         * pOMDoc;
+  CAttributeList      * pAL;
+  CObjectModel        * pOM;
+  CRoutingSpace       * pRS;
+  CDimension          * pDim;
+  CBitfieldDataType   * pBFDT;
+  CBitfieldComponent  * pBF;
+  CComplexDataType    * pCDT;
+  CComplexComponent   * pCC;
+  CEnumeratedDataType * pEDT;
+  CEnumeration        * pEnum;
+  CClass              * pClass;
+  CAttribute          * pAttr;
+  CInteraction        * pInt;
+  CParameter          * pParm;
+  CNote               * pNote;
+  CNoteText           * pNoteText;
+  CNoteList           * pNL;
+  CAttributeValuePair * pAVP;
+  OMDNode             * pNode;
+  const char          * pStr;
+}
+
+%token          eAttributeName           /* */
+%token          eAttributeValue          /* */
+%token  <pStr>  eVersionString           /* version string v1.3.5.17 */
+
+%token          OPAREN                   /* open parentheses         */
+%token          CPAREN                   /* close parentheses        */
+%token          OSQRBRACKET              /* open square bracket "["  */
+%token          CSQRBRACKET              /* close square bracket "]" */
+%token          COMMA                    /* the comma character      */
+%token  <pStr>  QUOTEDSTR                /* quoted string            */
+%token  <pStr>  BADQUOTEDSTR             /* a bad quoted string w \n or \r */
+%token  <pStr>  UNQUOTEDSTR              /* a run of chars without blanks or breaks */
+%token  <pStr>  DATESTR                  /* date string 05/10/2003   */
+%token  <pStr>  DOCTYP                   /* FOM | SOM | FED | OMT    */
+%token  <pStr>  NUMBER                   /* decimal number           */
+%token          ELIPSES                  /* ...                      */
+
+%token          OPEN_eAccuracy           /* Accuracy                 */
+%token          OPEN_eAccuracyCondition  /* AccuracyCondition        */
+%token          OPEN_eApplicationDomain  /* ApplicationDomain        */
+%token          OPEN_eAttribute          /* Attribute                */
+%token          OPEN_eAutoSequence       /* AutoSequence             */
+%token          OPEN_eBitfieldDataType   /* */
+%token          OPEN_eBitfieldComponent  /* */
+%token          OPEN_eCardinality        /* Cardinality              */
+%token          OPEN_eClass              /* Class                    */
+%token          OPEN_eComplexComponent   /* ComplexComponent         */
+%token          OPEN_eComplexDataType    /* ComplexDataType          */
+%token          OPEN_eDIF                /* DIF form of the file     */
+%token          OPEN_eDataBits           /* */
+%token          OPEN_eDataPos            /* */
+%token          OPEN_eDataWidth          /* */
+%token          OPEN_eDataType           /* DataType                 */
+%token          OPEN_eDeliveryCategory   /* DeliveryCategory         */
+%token          OPEN_eDescription        /* Description              */
+%token          OPEN_eDimension          /* Dimension                */
+%token          OPEN_eDimensionMaximum   /* DimensionMaximum         */
+%token          OPEN_eDimensionMinimum   /* DimensionMinimum         */
+%token          OPEN_eDimensionType      /* DimensionType            */
+%token          OPEN_eDocument
+%token          OPEN_eEnumeratedDataType /* EnumeratedDataType       */
+%token          OPEN_eEnumeration        /* Enumeration              */
+%token          OPEN_eEnumerator         /* Enumerator               */
+%token          OPEN_eFEDname
+%token          OPEN_eFieldName          /* FieldName                */
+%token          OPEN_eID                 /* eID                      */
+%token          OPEN_eISRType            /* ISRType                  */
+%token          OPEN_eInteraction        /* Interaction              */
+%token          OPEN_eIntervalType       /* IntervalType             */
+%token          OPEN_eMOMClass
+%token          OPEN_eMOMComplexDataType
+%token          OPEN_eMOMEnumeratedDataType
+%token          OPEN_eMOMInteraction
+%token          OPEN_eMOMVersion
+%token          OPEN_eMessageOrdering    /* MessageOrdering          */
+%token          OPEN_eModificationDate
+%token          OPEN_eName               /* Name                     */
+%token          OPEN_eNormalizationFunction/* NormalizationFunction  */
+%token          OPEN_eNote               /* Note                     */
+%token          OPEN_eNoteNumber         /* NoteNumber               */
+%token          OPEN_eNoteText           /* NoteText                 */
+%token          OPEN_eOMDT               /* OMDT                     */
+%token          OPEN_eObjectModel        /* ObjectModel              */
+%token          OPEN_ePOCEmail
+%token          OPEN_ePOCFirstName
+%token          OPEN_ePOCHonorificName   /* POCHonorificName         */
+%token          OPEN_ePOCLastName
+%token          OPEN_ePOCOrgName
+%token          OPEN_ePOCPhone
+%token          OPEN_ePSCapabilities     /* PSCapabilities           */
+%token          OPEN_eParameter          /* Parameter                */
+%token          OPEN_ePurpose            /* Purpose                  */
+%token          OPEN_eRange              /* Range                    */
+%token          OPEN_eRangeSetUnits      /* RangeSetUnits            */
+%token          OPEN_eRepresentation     /* Representation           */
+%token          OPEN_eResolution         /* Resolution               */
+%token          OPEN_eRoutingSpace       /* RoutingSpace             */
+%token          OPEN_eSponsorOrgName
+%token          OPEN_eStartValue         /* StartVal                 */
+%token          OPEN_eSuperClass         /* SuperClass               */
+%token          OPEN_eSuperInteraction   /* SuperInteraction         */
+%token          OPEN_eTYPE               /* to support DIF format    */
+%token          OPEN_eTransferAccept     /* TransferAccept           */
+%token          OPEN_eType               /* Type                     */
+%token          OPEN_eUnits              /* Units                    */
+%token          OPEN_eUpdateCondition    /* UpdateCondition          */
+%token          OPEN_eUpdateReflect      /* UpdateReflect            */
+%token          OPEN_eUpdateType         /* UpdateType               */
+%token          OPEN_eVersionNumber      /* VersionNumber            */
+
+%token          CLOSE_eAccuracy           /* Accuracy                 */
+%token          CLOSE_eAccuracyCondition  /* AccuracyCondition        */
+%token          CLOSE_eApplicationDomain  /* ApplicationDomain        */
+%token          CLOSE_eAttribute          /* Attribute                */
+%token          CLOSE_eAutoSequence       /* AutoSequence             */
+%token          CLOSE_eBitfieldDataType   /* */
+%token          CLOSE_eBitfieldComponent  /* */
+%token          CLOSE_eCardinality        /* Cardinality              */
+%token          CLOSE_eClass              /* Class                    */
+%token          CLOSE_eComplexComponent   /* ComplexComponent         */
+%token          CLOSE_eComplexDataType    /* ComplexDataType          */
+%token          CLOSE_eDIF                /* DIF form of the file     */
+%token          CLOSE_eDataBits           /* */
+%token          CLOSE_eDataPos            /* */
+%token          CLOSE_eDataWidth          /* */
+%token          CLOSE_eDataType           /* DataType                 */
+%token          CLOSE_eDeliveryCategory   /* DeliveryCategory         */
+%token          CLOSE_eDescription        /* Description              */
+%token          CLOSE_eDimension          /* Dimension                */
+%token          CLOSE_eDimensionMaximum   /* DimensionMaximum         */
+%token          CLOSE_eDimensionMinimum   /* DimensionMinimum         */
+%token          CLOSE_eDimensionType      /* DimensionType            */
+%token          CLOSE_eDocument
+%token          CLOSE_eEnumeratedDataType /* EnumeratedDataType       */
+%token          CLOSE_eEnumeration        /* Enumeration              */
+%token          CLOSE_eEnumerator         /* Enumerator               */
+%token          CLOSE_eFEDname
+%token          CLOSE_eFieldName          /* FieldName                */
+%token          CLOSE_eID                 /* eID                      */
+%token          CLOSE_eISRType            /* ISRType                  */
+%token          CLOSE_eInteraction        /* Interaction              */
+%token          CLOSE_eIntervalType       /* IntervalType             */
+%token          CLOSE_eMOMClass
+%token          CLOSE_eMOMComplexDataType
+%token          CLOSE_eMOMEnumeratedDataType
+%token          CLOSE_eMOMInteraction
+%token          CLOSE_eMOMVersion
+%token          CLOSE_eMessageOrdering    /* MessageOrdering          */
+%token          CLOSE_eModificationDate
+%token          CLOSE_eName               /* Name                     */
+%token          CLOSE_eNormalizationFunction/* NormalizationFunction  */
+%token          CLOSE_eNote               /* Note                     */
+%token          CLOSE_eNoteNumber         /* NoteNumber               */
+%token          CLOSE_eNoteText           /* NoteText                 */
+%token          CLOSE_eOMDT               /* OMDT                     */
+%token          CLOSE_eObjectModel        /* ObjectModel              */
+%token          CLOSE_ePOCEmail
+%token          CLOSE_ePOCFirstName
+%token          CLOSE_ePOCHonorificName   /* POCHonorificName         */
+%token          CLOSE_ePOCLastName
+%token          CLOSE_ePOCOrgName
+%token          CLOSE_ePOCPhone
+%token          CLOSE_ePSCapabilities     /* PSCapabilities           */
+%token          CLOSE_eParameter          /* Parameter                */
+%token          CLOSE_ePurpose            /* Purpose                  */
+%token          CLOSE_eRange              /* Range                    */
+%token          CLOSE_eRangeSetUnits      /* RangeSetUnits            */
+%token          CLOSE_eRepresentation     /* Representation           */
+%token          CLOSE_eResolution         /* Resolution               */
+%token          CLOSE_eRoutingSpace       /* RoutingSpace             */
+%token          CLOSE_eSponsorOrgName
+%token          CLOSE_eStartValue         /* StartVal                 */
+%token          CLOSE_eSuperClass         /* SuperClass               */
+%token          CLOSE_eSuperInteraction   /* SuperInteraction         */
+%token          CLOSE_eTYPE               /* to support DIF format    */
+%token          CLOSE_eTransferAccept     /* TransferAccept           */
+%token          CLOSE_eType               /* Type                     */
+%token          CLOSE_eUnits              /* Units                    */
+%token          CLOSE_eUpdateCondition    /* UpdateCondition          */
+%token          CLOSE_eUpdateReflect      /* UpdateReflect            */
+%token          CLOSE_eUpdateType         /* UpdateType               */
+%token          CLOSE_eVersionNumber      /* VersionNumber            */
+
+%type  <pOMDoc> document
+%type  <pNode>  omdtORdifVersion
+%type  <pOM>    body
+%type  <pNode>  bodyItem
+%type  <pAVP>   omdtVersion
+%type  <pAL>    diffVersion
+%type  <pAL>    difExpr
+%type  <pNL>    noteRefs
+
+%type  <pNode>  frontMatterItem
+%type  <pNode>  routingSpace
+%type  <pNode>  enumeration
+%type  <pNode>  objectItem
+%type  <pNode>  interactionItem
+%type  <pNode>  noteDefinition
+
+%type  <pAL>    enumerateList
+%type  <pNode>  enumerateItem
+
+%type  <pNode>  complexTypes
+%type  <pAL>    complx_comp_list
+%type  <pNode>  complx_comp
+%type  <pNode>  bitfield_comp
+%type  <pNode>  bitfieldComponentItemList
+%type  <pNode>  complexComponentItemList
+%type  <pDim>   dimensionItem
+%type  <pAVP>   bitfieldComponentItems
+%type  <pAVP>   complexComponentItems
+%type  <pAL>    routingProps
+%type  <pAVP>   routingProp
+
+%type  <pAVP>   objectDefItem
+%type  <pAVP>   attributeDefItem
+%type  <pAttr>  attributeListItem
+%type  <pAttr>  attributeList
+
+%type  <pAVP>   interactnDefItem
+%type  <pAVP>   parameterDefItem
+%type  <pParm>  parameterListItem
+%type  <pParm>  parameterList
+
+%type  <pStr>   quoted_string
+
+%%
+
+document        : omdtORdifVersion
+{
+  //printf("OMDocument\n" );
+
+  pOMDoc = COMDocument::getRoot();
+
+  $<pOMDoc>$ = pOMDoc;
+
+  pOMDoc->Add( $1 );
+}
+                  OPEN_eObjectModel
+                  body
+                  CLOSE_eObjectModel
+{
+    // body
+    // printf("body\n");
+    // done 
+    pOMDoc->Add( pObjectModel );
+
+    pObjectModel = NULL;
+}
+                  |
+                  error
+                  CPAREN
+{
+  if (errorCount == 0) printf("Input rejected\n");
+
+  errorCount++;
+}
+                  ;
+
+omdtORdifVersion: omdtVersion
+{
+  //$$ = new CAttributeList(TOK(OPEN_eOMDT));
+
+  //$$->Add( $1 );
+
+  $$ = $1;
+}
+                  |
+                  diffVersion
+{
+  //$$ = new CAttributeList(TOK(OPEN_eDIF));
+
+  //$$->Add( $1 );
+
+  $$ = $1;
+}
+                  ;
+
+omdtVersion     : OPEN_eOMDT
+                  eVersionString
+                  noteRefs
+                  CLOSE_eOMDT
+{
+  // OPEN_eOMDT
+  $$ = new CAttributeValuePair( TOK(OPEN_eOMDT), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  error
+                  CPAREN
+{
+  printf("Error in omdtVersion\n");
+}
+                  ;
+
+diffVersion     : OPEN_eDIF
+                  difExpr
+                  noteRefs
+                  CLOSE_eDIF
+{
+  // OPEN_eDIF
+  $$ = $2;
+  $$->Add ( $3 );
+}
+                  ;
+
+difExpr         : UNQUOTEDSTR
+                  eVersionString
+                  OPEN_eTYPE
+                  UNQUOTEDSTR
+                  CLOSE_eTYPE
+{
+  // OPAREN eTYPE UNQUOTEDSTR
+  DEBUG( cerr << "doing difExpr " << endl );
+
+  $$ = new CAttributeList( TOK(OPEN_eDIF) );
+  
+  $$->Add( new Singleton( $1 ) );
+
+  $$->Add( new Singleton( $2 ) );
+
+  $$->Add( new CAttributeValuePair( TOK(OPEN_eTYPE), $4 ) ); 
+}
+                  ;
+
+noteRefs        : OSQRBRACKET 
+                  NUMBER
+{
+  // noteRefs
+  // cerr << "NUMBER = " << $2 << endl;
+
+  pNL  = new CNoteList( atoi($2) );
+}
+                  numberList 
+                  CSQRBRACKET
+{
+  $$  = pNL;
+  pNL = NULL;
+}
+                  |
+{
+  $$ = NULL;
+}
+                  ;
+
+numberList      : numberList
+                  COMMA  
+                  NUMBER  
+{
+  // numberList
+  // cerr << "NUMBER = " << $3 << endl;
+  pNL->Add( atoi($3) );
+}
+                  |
+                  ;
+
+body            : body
+{
+  if(pObjectModel == NULL) pObjectModel = new CObjectModel();
+
+  //DEBUG( cerr << "Creating CObjectModel() @ " 
+  //            << hex 
+  //            << long(pObjectModel) 
+  //            << dec 
+  //            << endl );
+}
+                  bodyItem
+{
+  // bodyItem
+  //DEBUG( cerr << "using CObjectMode() @ "  
+  //            << hex   
+  //            << long(pObjectModel)   
+  //            << dec   
+  //            << endl );
+
+  pObjectModel->Add( $3 );
+}
+                  |
+{
+}
+                  ;
+
+bodyItem        : frontMatterItem
+{
+  $$ = $1;
+}
+                  |
+                  routingSpace
+{
+  $$ = $1;
+}
+                  |
+                  enumeration
+{
+  $$ = $1;
+}
+                  |
+                  complexTypes
+{
+  $$ = $1;
+}
+                  |
+                  objectItem
+{
+  $$ = $1;
+}
+                  |
+                  interactionItem
+{
+  $$ = $1;
+}
+                  |
+                  noteDefinition
+{
+  $$ = $1;
+}
+                  |
+                  error
+                  CPAREN
+{
+  $$ = NULL;
+}
+                  ;
+                 
+frontMatterItem : OPEN_eName                 
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_eName
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eName), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eVersionNumber        
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_eVersionNumber
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eVersionNumber), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eType                 
+                  DOCTYP    
+                  noteRefs
+                  CLOSE_eType
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eType), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_ePurpose              
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_ePurpose
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_ePurpose), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eApplicationDomain    
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_eApplicationDomain
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eApplicationDomain), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eSponsorOrgName       
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_eSponsorOrgName       
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eSponsorOrgName), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_ePOCHonorificName     
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_ePOCHonorificName   
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_ePOCHonorificName), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_ePOCFirstName         
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_ePOCFirstName
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_ePOCFirstName), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_ePOCLastName          
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_ePOCLastName
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_ePOCLastName), $2 );
+  $$->Add( $3 );
+}
+                  | 
+                  OPEN_ePOCOrgName           
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_ePOCOrgName
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_ePOCOrgName), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_ePOCPhone             
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_ePOCPhone
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_ePOCPhone), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_ePOCEmail             
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_ePOCEmail
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_ePOCEmail), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eModificationDate     
+                  DATESTR    
+                  noteRefs
+                  CLOSE_eModificationDate
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eModificationDate), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eMOMVersion           
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_eMOMVersion
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eMOMVersion), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eFEDname              
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_eFEDname
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eFEDname), $2 );
+  $$->Add( $3 );
+}
+                  ;
+
+enumeration     : OPEN_eEnumeratedDataType 
+                  OPEN_eName  
+                  QUOTEDSTR  
+                  noteRefs  
+                  CLOSE_eName
+{
+  pEnumeratedDataType = new CEnumeratedDataType();
+
+  CAttributeValuePair * pName = new CAttributeValuePair( TOK( OPEN_eName ), $3 );
+
+  pEnumeratedDataType->Add( pName );
+
+  pName->Add( $4 );
+}
+                  enumerateList
+                  CLOSE_eEnumeratedDataType
+{
+  $$ = pEnumeratedDataType;
+
+  pEnumeratedDataType = NULL;
+}
+                  ;
+
+enumerateList   : enumerateList
+                  enumerateItem   
+{
+  pEnumeratedDataType->Add( $2 );
+}
+                  | 
+{
+}
+                  ;
+
+enumerateItem   : OPEN_eMOMEnumeratedDataType  
+                  UNQUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eMOMEnumeratedDataType  
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eMOMEnumeratedDataType), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eAutoSequence  
+                  UNQUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eAutoSequence
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eAutoSequence), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eStartValue    
+                  NUMBER       
+                  noteRefs 
+                  CLOSE_eStartValue
+{
+  // eStartValue
+  $$ = new CAttributeValuePair( TOK(OPEN_eStartValue), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDescription   
+                  quoted_string   
+                  noteRefs 
+                  CLOSE_eDescription
+{
+  // eDescription QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eDescription), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eEnumeration 
+{
+  pEnumeration = new CEnumeration();
+}
+                  OPEN_eEnumerator      
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eEnumerator
+{
+  CAttributeValuePair * pAVP = new CAttributeValuePair(TOK(OPEN_eEnumerator), $4);
+
+  pEnumeration->Add( pAVP );
+  
+  pAVP->Add( $5 );  
+}
+                  OPEN_eRepresentation  
+                  NUMBER     
+                  noteRefs
+                  CLOSE_eRepresentation
+                  CLOSE_eEnumeration
+{
+  // OPEN_eEnumerator QUOTEDSTR
+
+  CAttributeValuePair * pAVP = new CAttributeValuePair(TOK(OPEN_eRepresentation), $9 );
+
+  pEnumeration->Add( pAVP );
+
+  pAVP->Add( $10 );
+
+  $$ = pEnumeration;
+
+  pEnumeration = NULL;
+}
+                  ;
+
+quoted_string   : QUOTEDSTR
+                  |
+                  BADQUOTEDSTR
+{
+   cerr << "Bad quoted string encountered at line " << getLine() << endl;
+}
+                  ;
+
+complexTypes    : OPEN_eComplexDataType
+{
+  pComplexDataType = new CComplexDataType();
+}
+                  OPEN_eName  
+                  QUOTEDSTR  
+                  noteRefs  
+                  CLOSE_eName
+{
+  CAttributeValuePair * pAVP = new CAttributeValuePair(TOK(OPEN_eName), $4 );
+
+  pComplexDataType->Add( pAVP );
+
+  pAVP->Add( $5 );
+
+}
+                  complx_comp_list
+                  CLOSE_eComplexDataType
+{
+  //  OPAREN eName QUOTEDSTR
+
+  // pComplexDataType is created in the complx_comp_list production
+
+  $$ = pComplexDataType;
+
+  pComplexDataType = NULL;
+}
+                  |
+                  OPEN_eBitfieldDataType
+{
+    pBitfieldDataType = new CBitfieldDataType();
+}
+                  OPEN_eName  
+                  QUOTEDSTR  
+                  noteRefs  
+                  CLOSE_eName
+{
+  CAttributeValuePair * pAVP = new CAttributeValuePair(TOK(OPEN_eName), $4 );
+
+  pBitfieldDataType->Add( pAVP );
+
+  pAVP->Add( $5 );
+
+}
+                  bitfield_comp_list
+                  CLOSE_eBitfieldDataType
+{
+  //  OPAREN eName QUOTEDSTR
+
+  // pComplexDataType is created in the complx_comp_list production
+
+  $$ = pBitfieldDataType;
+
+  pBitfieldDataType = NULL;
+}
+                  ;
+
+complx_comp_list: complx_comp_list
+                  complx_comp  
+{
+  // complx_comp_list: complx_comp_list OPAREN complx_comp noteRefs CPAREN
+
+  pComplexDataType->Add( $2 );
+}
+                  |
+{
+}
+                  ;
+
+bitfield_comp_list: bitfield_comp_list
+                    bitfield_comp  
+{
+  // bitfield_comp_list: bitfield_comp_list OPAREN bitfield_comp noteRefs CPAREN
+
+  pBitfieldDataType->Add( $2 );
+}
+                    |
+{
+}
+                    ;
+
+bitfield_comp   : OPEN_eBitfieldComponent
+                  bitfieldComponentItemList
+                  CLOSE_eBitfieldComponent
+{
+  // eComplexComponent
+
+  // pComplexComponent is created in the complexComponentItemList production
+
+  $$ = pBitfieldComponent;
+
+  pBitfieldComponent = NULL;
+}
+                  |
+                  OPEN_eDescription
+                  quoted_string  
+                  noteRefs 
+                  CLOSE_eDescription
+{
+  // eDescription QUOTEDSTR noteRefs
+  $$ = new  CAttributeValuePair(TOK(OPEN_eDescription), $2 );
+  $$->Add( $3 );
+}
+;
+
+
+complx_comp     : OPEN_eMOMComplexDataType  
+                  UNQUOTEDSTR
+                  noteRefs 
+                  CLOSE_eMOMComplexDataType
+{
+  // complx_comp     : eMOMComplexDataType UNQUOTEDSTR
+
+  $$ = new  CAttributeValuePair(TOK(OPEN_eMOMComplexDataType), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eComplexComponent
+                  complexComponentItemList
+                  CLOSE_eComplexComponent
+{
+  // eComplexComponent
+
+  // pComplexComponent is created in the complexComponentItemList production
+
+  $$ = pComplexComponent;
+
+  pComplexComponent = NULL;
+}
+                  |
+                  OPEN_eBitfieldComponent
+                  bitfieldComponentItemList
+                  CLOSE_eBitfieldComponent
+{
+  // eComplexComponent
+
+  // pComplexComponent is created in the complexComponentItemList production
+
+  $$ = pBitfieldComponent;
+
+  pBitfieldComponent = NULL;
+}
+                  |
+                  OPEN_eDescription
+                  quoted_string  
+                  noteRefs 
+                  CLOSE_eDescription
+{
+  // eDescription QUOTEDSTR noteRefs
+  $$ = new  CAttributeValuePair(TOK(OPEN_eDescription), $2 );
+  $$->Add( $3 );
+}
+                  ;
+
+bitfieldComponentItemList :
+                  bitfieldComponentItemList
+                  bitfieldComponentItems
+{
+  // complexComponentItemList : complexComponentItemList OPAREN complexComponentItems
+    
+  if (!pBitfieldComponent) pBitfieldComponent = new CBitfieldComponent();
+
+  pBitfieldComponent->Add( $2 );
+}
+                  |
+{
+    //
+    $$ = NULL;
+}
+                  ;
+
+bitfieldComponentItems :
+                  OPEN_eDataPos
+                  quoted_string
+                  noteRefs  
+                  CLOSE_eDataPos
+{
+  // OPEN_eDataPos
+
+  $$ = new CAttributeValuePair( TOK(OPEN_eDataPos), $2 );
+  
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDataWidth
+                  quoted_string
+                  noteRefs  
+                  CLOSE_eDataWidth
+{
+  // OPEN_eDataWidth
+  $$ = new CAttributeValuePair( TOK(OPEN_eDataWidth), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eRange
+                  quoted_string
+                  noteRefs  
+                  CLOSE_eRange
+{
+  // OPEN_eRange
+  $$ = new CAttributeValuePair( TOK(OPEN_eRange), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  complexComponentItems
+                  ;
+
+complexComponentItemList : 
+                  complexComponentItemList
+                  complexComponentItems
+{
+  // complexComponentItemList : complexComponentItemList OPAREN complexComponentItems
+  if (!pComplexComponent) pComplexComponent = new CComplexComponent();
+
+  pComplexComponent->Add( $2 );
+}
+                  |
+{
+}
+                  ;
+
+complexComponentItems :
+                  OPEN_eFieldName   
+                  QUOTEDSTR  
+                  noteRefs  
+                  CLOSE_eFieldName
+{
+  // OPEN_eFieldName
+  $$ = new CAttributeValuePair( TOK(OPEN_eFieldName), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDataType    
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eDataType
+{
+  // OPEN_eDataType
+  $$ = new CAttributeValuePair( TOK(OPEN_eDataType), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDescription
+                  quoted_string  
+                  noteRefs 
+                  CLOSE_eDescription
+{
+  // eDescription QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eDescription), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eCardinality         
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eCardinality
+{
+  // eCardinality QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eCardinality), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eAccuracy            
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eAccuracy
+{
+  // eAccuracy QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eAccuracy), $2 );
+  $$->Add( $3 );
+}
+                  | 
+                  OPEN_eAccuracyCondition   
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eAccuracyCondition
+{
+  // eAccuracyCondition QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eAccuracyCondition), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eUnits               
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eUnits
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eUnits), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eResolution          
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eResolution
+{
+  // eResolution QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eResolution), $2 );
+  $$->Add( $3 );
+}
+                  ;
+
+routingSpace    : OPEN_eRoutingSpace  
+                  OPEN_eName         
+                  QUOTEDSTR  
+                  noteRefs   
+                  CLOSE_eName
+{
+  pRoutingSpace = new CRoutingSpace();
+  
+  CAttributeValuePair * pName = new CAttributeValuePair( TOK(OPEN_eName), $3 );
+
+  pName->Add( $4 );
+
+  pRoutingSpace->Add( pName );
+}
+                  dimensionList
+                  CLOSE_eRoutingSpace
+{
+  $$ = pRoutingSpace;
+
+  pRoutingSpace = NULL;
+}
+                  ;
+
+dimensionList   : dimensionList
+                  dimensionItem
+{
+  pRoutingSpace->Add( $2 );
+}
+                  |
+                  ;
+
+dimensionItem   : OPEN_eDimension 
+{
+  pDimension = new CDimension();
+}
+                  OPEN_eName           
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_eName
+{
+  CAttributeValuePair * pName = new CAttributeValuePair( TOK(OPEN_eName), $4 );
+
+  pName->Add( $5 );
+
+  pDimension->Add( pName );
+}
+                  OPEN_eDimensionType  
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_eDimensionType
+{
+  CAttributeValuePair * pDimType = new CAttributeValuePair( TOK(OPEN_eDimensionType), $9);
+
+  pDimType->Add( $10 );
+
+  pDimension->Add( pDimType );
+}
+                  routingProps
+                  CLOSE_eDimension
+{
+  pDimension->Add( pRoutingProps );
+
+  pRoutingProps = NULL;
+
+  $$ = pDimension;
+
+  pDimension = NULL;
+}
+                  ;
+
+
+routingProps    : routingProps 
+                  routingProp  
+{
+  pDimension->Add( $2 );
+}
+                  |
+{
+}
+                  ;
+
+routingProp     : OPEN_eDimensionMinimum  
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eDimensionMinimum
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eDimensionMinimum), $2 );
+  $$->Add( $3 );
+}
+                  | 
+                  OPEN_eDimensionMaximum  
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eDimensionMaximum
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eDimensionMaximum), $2 );
+  $$->Add( $3 );
+}
+                  | 
+                  OPEN_eIntervalType      
+                  UNQUOTEDSTR  
+                  noteRefs
+                  CLOSE_eIntervalType
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eIntervalType), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eRangeSetUnits     
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_eRangeSetUnits
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eRangeSetUnits), $2 );
+  $$->Add( $3 );
+}
+                  | 
+                  OPEN_eNormalizationFunction  
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_eNormalizationFunction
+{
+  $$ = new CAttributeValuePair( TOK(OPEN_eNormalizationFunction), $2 );
+  $$->Add( $3 );
+}
+                  ; 
+
+objectItem      : OPEN_eClass 
+{
+  // objectItem
+  pClass = new CClass();
+}
+                  OPEN_eID  
+                  NUMBER  
+                  noteRefs 
+                  CLOSE_eID
+{
+  CAttributeValuePair * pAVP = new CAttributeValuePair( TOK( OPEN_eID ), $4 );
+
+  pAVP->Add( $5 );
+
+  pClass->Add( pAVP );
+}
+                  objectDefList
+                  attributeList
+                  CLOSE_eClass
+{
+  // objectItem ... tail
+
+  $$     = pClass;
+
+  pClass = NULL;
+}
+                  ;
+
+objectDefList   : objectDefList
+                  objectDefItem
+{
+  // objectDefList
+  pClass->Add( $2 );
+}
+                  |
+                  ;
+
+objectDefItem   : OPEN_eName  
+                  QUOTEDSTR  
+                  noteRefs
+                  CLOSE_eName
+{
+  // eName QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eName), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_ePSCapabilities  
+                  UNQUOTEDSTR  
+                  noteRefs
+                  CLOSE_ePSCapabilities
+{
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_ePSCapabilities), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eMOMClass
+                  UNQUOTEDSTR  
+                  noteRefs
+                  CLOSE_eMOMClass
+{
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eMOMClass), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDescription
+                  quoted_string  
+                  noteRefs
+                  CLOSE_eDescription
+{
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eDescription), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eSuperClass  
+                  NUMBER  
+                  noteRefs
+                  CLOSE_eSuperClass
+{
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eSuperClass), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDeliveryCategory    
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eDeliveryCategory
+{
+  // eDeliveryCategory QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eDeliveryCategory), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eMessageOrdering     
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eMessageOrdering
+{
+  // eMessageOrdering QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eMessageOrdering), $2 );
+  $$->Add( $3 );
+}
+                  ;
+
+attributeList   : attributeList
+                  attributeListItem
+{
+  pClass->Add( $2 );
+  
+}
+                  |
+{
+}
+                  ;
+
+attributeListItem: 
+                  OPEN_eAttribute
+                  attributeDef
+                  CLOSE_eAttribute
+{
+  // attributeListItem
+  $$ = pAttribute;
+  pAttribute = NULL;
+}
+                  ;
+
+attributeDef    : attributeDef  
+                  attributeDefItem
+{
+  // attributeDef
+  if (!pAttribute) pAttribute = new CAttribute();
+
+  pAttribute->Add( $2 );
+}
+                  |
+{
+    // no attribute under this object
+}
+                  ;
+
+attributeDefItem: OPEN_eName                
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eName
+{
+  // eName QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eName), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDataType            
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eDataType
+{
+  // eDataType  QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eDataType), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eCardinality         
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eCardinality
+{
+  // eCardinality QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eCardinality), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eUnits               
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eUnits
+{
+  // eUnits QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eUnits), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eResolution          
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eResolution
+{
+  // eResolution QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eResolution), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eAccuracy            
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eAccuracy
+{
+  // eAccuracy QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eAccuracy), $2 );
+  $$->Add( $3 );
+}
+                  | 
+                  OPEN_eAccuracyCondition   
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eAccuracyCondition
+{
+  // eAccuracyCondition QUOTEDSTR
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eAccuracyCondition), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eUpdateType          
+                  UNQUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eUpdateType
+{
+  // eUpdateType UNQUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eUpdateType), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eUpdateCondition     
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eUpdateCondition
+{
+  // eUpdateCondition QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eUpdateCondition), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eTransferAccept      
+                  UNQUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eTransferAccept
+{ 
+  // eTransferAccept UNQUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eTransferAccept), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eUpdateReflect       
+                  UNQUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eUpdateReflect
+{
+  // eUpdateReflect UNQUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eUpdateReflect), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDescription
+                  quoted_string  
+                  noteRefs 
+                  CLOSE_eDescription
+{
+  // eDescription QUOTEDSTR
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eDescription), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eRoutingSpace        
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eRoutingSpace
+{
+  // eRoutingSpace QUOTEDSTR
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eRoutingSpace), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDeliveryCategory    
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eDeliveryCategory
+{
+  // eDeliveryCategory QUOTEDSTR
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eDeliveryCategory), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eMessageOrdering     
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eMessageOrdering
+{
+  // eMessageOrdering QUOTEDSTR
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eMessageOrdering), $2 );
+  $$->Add( $3 );
+}
+                  ;
+
+interactionItem : OPEN_eInteraction
+{
+  // interactionItem
+  pInt = new CInteraction();
+}
+                  OPEN_eID  
+                  NUMBER  
+                  noteRefs 
+                  CLOSE_eID
+{
+  CAttributeValuePair * pAVP = new CAttributeValuePair( TOK(OPEN_eID), $4 );
+
+  pAVP->Add( $5 );
+
+  pInt->Add( pAVP );
+}
+                  interactnDefList
+                  parameterList
+                  CLOSE_eInteraction
+{
+  // interactionItem
+
+  $$ = pInt;
+
+  pInt = NULL;
+}
+                  ;
+
+interactnDefList: interactnDefList
+                  interactnDefItem  
+{
+  // OPAREN interactnDefItem noteRefs CPAREN 
+  pInt->Add( $2 );
+}
+                  |
+                  ;
+
+interactnDefItem: OPEN_eMOMInteraction    
+                  UNQUOTEDSTR  
+                  noteRefs
+                  CLOSE_eMOMInteraction
+{
+  // eMOMInteraction : UNQUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eMOMInteraction), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eName              
+                  QUOTEDSTR    
+                  noteRefs
+                  CLOSE_eName
+{
+  // eName QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eName), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eISRType           
+                  UNQUOTEDSTR  
+                  noteRefs
+                  CLOSE_eISRType
+{
+  // eISRType UNQUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eISRType), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_ePSCapabilities    
+                  UNQUOTEDSTR  
+                  noteRefs
+                  CLOSE_ePSCapabilities
+{
+  // eISRType UNQUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_ePSCapabilities), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDescription       
+                  quoted_string  
+                  noteRefs
+                  CLOSE_eDescription
+{
+  // eISRType UNQUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eDescription), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eSuperInteraction  
+                  NUMBER       
+                  noteRefs
+                  CLOSE_eSuperInteraction
+{
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eSuperInteraction), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eRoutingSpace      
+                  QUOTEDSTR    
+                  noteRefs
+                  CLOSE_eRoutingSpace
+{
+  // eRoutingSpace QUOTEDSTR
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eRoutingSpace), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDeliveryCategory  
+                  QUOTEDSTR    
+                  noteRefs
+                  CLOSE_eDeliveryCategory
+{
+  // eDeliveryCategory QUOTEDSTR
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eDeliveryCategory), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eMessageOrdering   
+                  QUOTEDSTR    
+                  noteRefs
+                  CLOSE_eMessageOrdering
+{
+  // eMessageOrdering QUOTEDSTR
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eMessageOrdering), $2 );
+  $$->Add( $3 );
+}
+                  ;
+
+parameterList   : parameterList
+                  parameterListItem
+{
+  pInt->Add( $2 );
+}
+                  |
+{
+  // parameterList
+}
+                  ;
+
+parameterListItem: 
+                  OPEN_eParameter  
+                  parameterDef
+                  CLOSE_eParameter
+{
+  // parameterListItem
+  $$ = pParameter;
+  pParameter = NULL;
+}
+                  ;
+
+parameterDef    : parameterDef
+                  parameterDefItem
+{
+  // parameterDef
+  if (!pParameter) pParameter = new CParameter();
+
+  pParameter->Add( $2 );
+}
+                  |
+{
+  // parameterDef
+}
+                  ;
+
+parameterDefItem: OPEN_eName                
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eName
+{
+  // eName QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eName), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDataType            
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eDataType
+{
+  // eDataType  QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eDataType), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eCardinality         
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eCardinality
+{
+  // eCardinality QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eCardinality), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eUnits               
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eUnits
+{
+  // eUnits QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eUnits), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eResolution          
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eResolution
+{
+  // eResolution QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eResolution), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eAccuracy            
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eAccuracy
+{
+  // eAccuracy QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eAccuracy), $2 );
+  $$->Add( $3 );
+}
+                  | 
+                  OPEN_eAccuracyCondition   
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eAccuracyCondition
+{
+  // eAccuracyCondition QUOTEDSTR
+  // $$ = new CAttributeValuePair( $1, $2 );
+  $$ = new CAttributeValuePair( TOK(OPEN_eAccuracyCondition), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eUpdateType          
+                  UNQUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eUpdateType
+{
+  // eUpdateType UNQUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eUpdateType), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eUpdateCondition     
+                  QUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eUpdateCondition
+{
+  // eUpdateCondition QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eUpdateCondition), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eTransferAccept      
+                  UNQUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eTransferAccept
+{ 
+  // eTransferAccept UNQUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eTransferAccept), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eUpdateReflect       
+                  UNQUOTEDSTR  
+                  noteRefs 
+                  CLOSE_eUpdateReflect
+{
+  // eUpdateReflect UNQUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eUpdateReflect), $2 );
+  $$->Add( $3 );
+}
+                  |
+                  OPEN_eDescription         
+                  quoted_string  
+                  noteRefs 
+                  CLOSE_eDescription
+{
+  // eDescription QUOTEDSTR
+  $$ = new CAttributeValuePair( TOK(OPEN_eDescription), $2 );
+  $$->Add( $3 );
+}
+                  ;
+
+
+noteDefinition  : OPEN_eNote
+                  OPEN_eNoteNumber  
+                  NUMBER  
+                  CLOSE_eNoteNumber
+                  OPEN_eNoteText    
+                  QUOTEDSTR  
+                  CLOSE_eNoteText
+                  CLOSE_eNote
+{
+  $$ = new CNote();
+
+//   cout << endl
+//        << "location : " 
+//        << @1.first_line   << ", " 
+//        << @1.first_column << ", "
+//        << @1.last_line    << ", "
+//        << @1.last_column
+//        << endl;
+
+  CAttributeValuePair * pAVP = new CAttributeValuePair( TOK(OPEN_eNoteNumber), 
+                                                        $3 
+                                                      );
+
+  $$->Add( pAVP );
+
+  CNoteText * pNoteText = new CNoteText( $6 );
+  
+  $$->Add( pNoteText );
+};
+
+%%
+
+                  //FlexLexer * getInstance(void);
+
+const char * getSym(void);
+const char * getPrevSym(void);
+
+// int yylex()
+// {
+//   int token = getInstance()->yylex();
+
+// #ifdef YYDEBUG
+// #if YYDEBUG==1
+//   yydebug = 0;
+// #endif
+// #endif
+
+//   //printf("token = %d, symbol = %s\n", token, getSym() );
+
+//   return token;
+// }
+
+void yyerror(const char * pMessage)
+{
+  printf("yyerror: line %d: \"%s\" "
+         "with token [%s]\n"
+         "and previous symbol \"%s\"\n", 
+         getLine(), 
+         pMessage, 
+         getSym(),
+         getPrevSym()
+        );
+}
+
+const char * tokenLookup(int token)
+{
+  const char * pRetVal = "not found";
+
+  const char * pPref   = "OPEN_e";
+  const size_t prefLen = 6;
+
+  size_t index;
+  for (index = 1; index < sizeof(yytoknum)/sizeof(unsigned short); index++)
+  {
+    int found = yytoknum[index];
+
+    if (found == token)
+    {
+      pRetVal = yytname[ index ];
+
+      if (strncmp(pPref,pRetVal,prefLen) == 0) pRetVal += prefLen;
+
+      if (*pRetVal == 'e') pRetVal++;
+
+      break;
+    }
+  }
+
+  return pRetVal;
+}
+
+// Local Variables:
+// mode:C++
+// End:
+

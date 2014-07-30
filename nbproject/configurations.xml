@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="94">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="0">
+      <in>AlignmentAndSize.cpp</in>
+      <in>AlignmentAndSize.h</in>
+      <in>Attribute.cpp</in>
+      <in>Attribute.h</in>
+      <in>AttributeValuePair.cpp</in>
+      <in>AttributeValuePair.h</in>
+      <in>CBitfieldComponent.h</in>
+      <in>CBitfieldDataType.h</in>
+      <in>CComplexComponent.h</in>
+      <in>CComplexDataType.h</in>
+      <in>CDimension.h</in>
+      <in>COMDocument.h</in>
+      <in>CObjectModel.h</in>
+      <in>CPrint.cpp</in>
+      <in>CPrint.h</in>
+      <in>CRoutingSpace.h</in>
+      <in>Decode.cpp</in>
+      <in>Decode.h</in>
+      <in>DecodeImp.cpp</in>
+      <in>DecodeImp.h</in>
+      <in>DeserializeCDT.cpp</in>
+      <in>DeserializeCDT.h</in>
+      <in>Deserializer.cpp</in>
+      <in>Deserializer.h</in>
+      <in>Document.cpp</in>
+      <in>Document.h</in>
+      <in>MinMaxPair.cpp</in>
+      <in>MinMaxPair.h</in>
+      <in>OMDBase.cpp</in>
+      <in>OMDBase.h</in>
+      <in>OMDCardinalityParser.cpp</in>
+      <in>OMDCardinalityParser.h</in>
+      <in>OMDNode.cpp</in>
+      <in>OMDNode.h</in>
+      <in>OMDStack.cpp</in>
+      <in>OMDStack.h</in>
+      <in>OMDTask.cpp</in>
+      <in>OMDTask.h</in>
+      <in>PrettyPrint.cpp</in>
+      <in>PrettyPrint.h</in>
+      <in>XMLPrint.cpp</in>
+      <in>XMLPrint.h</in>
+      <in>baseMap.h</in>
+      <in>cardFlex.cpp</in>
+      <in>cardinality.cpp</in>
+      <in>cardinality.h</in>
+      <in>cardinality.hpp</in>
+      <in>check.cpp</in>
+      <in>check.h</in>
+      <in>circAnalysis.cpp</in>
+      <in>circAnalysis.h</in>
+      <in>convert.h</in>
+      <in>dcTypes.cpp</in>
+      <in>dcTypes.h</in>
+      <in>dumpTree.cpp</in>
+      <in>eprint.cpp</in>
+      <in>eprint.hh</in>
+      <in>expr.cc</in>
+      <in>expr.hh</in>
+      <in>genHawklink.cpp</in>
+      <in>hlaInfo.cpp</in>
+      <in>hlaInfo.h</in>
+      <in>lex.yy.cc</in>
+      <in>omdStructure.cpp</in>
+      <in>omdStructure.h</in>
+      <in>omdt.c++</in>
+      <in>omdt.c++.h</in>
+      <in>omdt.h++.h</in>
+      <in>omdtCheck.cpp</in>
+      <in>omdtLex.cc</in>
+      <in>omdtLex.h</in>
+      <in>omdtOps.cpp</in>
+      <in>omdtPretty.cpp</in>
+      <in>omdtXml.cpp</in>
+      <in>omdt_test.cpp</in>
+      <in>report.cpp</in>
+      <in>report.h</in>
+      <in>singleton.cpp</in>
+      <in>singleton.h</in>
+      <in>testAlignmentAndSize.cpp</in>
+      <in>testCardinality.cpp</in>
+      <in>testCirc.cpp</in>
+      <in>testConvert.cpp</in>
+      <in>testOmdStructure.cpp</in>
+      <in>yystype.h</in>
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
+  <sourceRootList>
+    <Elem>.</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>false</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>.</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath></executablePath>
+          <ccTool>
+            <incDir>
+              <pElem>/usr/include/c++/4.7.3</pElem>
+              <pElem>/usr/include/x86_64-linux-gnu/c++/4.7</pElem>
+            </incDir>
+          </ccTool>
+        </makeTool>
+      </makefileType>
+      <item path="AlignmentAndSize.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="AlignmentAndSize.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Attribute.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Attribute.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="AttributeValuePair.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="AttributeValuePair.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="CBitfieldComponent.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="CBitfieldDataType.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="CComplexComponent.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="CComplexDataType.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="CDimension.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="COMDocument.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="CObjectModel.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="CPrint.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="CPrint.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="CRoutingSpace.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Decode.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Decode.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="DecodeImp.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="DecodeImp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="DeserializeCDT.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="DeserializeCDT.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Deserializer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Deserializer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Document.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Document.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="MinMaxPair.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="MinMaxPair.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="OMDBase.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="OMDBase.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="OMDCardinalityParser.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="OMDCardinalityParser.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="OMDNode.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="OMDNode.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="OMDStack.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="OMDStack.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="OMDTask.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="OMDTask.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="PrettyPrint.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="PrettyPrint.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="XMLPrint.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="XMLPrint.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="baseMap.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="cardFlex.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="cardinality.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="cardinality.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="cardinality.hpp" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="check.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="check.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="circAnalysis.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="circAnalysis.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="convert.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dcTypes.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="dcTypes.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dumpTree.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="eprint.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="eprint.hh" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="expr.cc" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="expr.hh" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="genHawklink.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="hlaInfo.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="hlaInfo.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="lex.yy.cc" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="omdStructure.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="omdStructure.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="omdt.c++" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="omdt.c++.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="omdt.h++.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="omdtCheck.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="omdtLex.cc" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="omdtLex.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="omdtOps.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="omdtPretty.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="omdtXml.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="omdt_test.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="report.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="report.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="singleton.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="singleton.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="testAlignmentAndSize.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="testCardinality.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="testCirc.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="testConvert.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="testOmdStructure.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="yystype.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>
