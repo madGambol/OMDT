@@ -36,4 +36,21 @@ testConvert
 *~
 *.o
 *.a
+*.dep
+genHawklink
+listviews
+dumpTree
+captia
+captia2
+omdtXmlPrint
+omdt.c
+omdtXmlPrint
+omdtLex.cc
+.cproject
+.cvsignore
+.project
+GNUmakefile.in.tmp
+expr.cpp-old
+expr.hh-old
+
 
